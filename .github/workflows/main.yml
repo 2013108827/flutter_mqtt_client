@@ -3,6 +3,7 @@ name: 自动构建并发布app
 
 # 工作流程触发的时机，这里是当一个版本标签推送到仓库时触发
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
