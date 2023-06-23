@@ -15,6 +15,10 @@ on:
       - '**/*.png'
       - '**/*.jpg'
 
+# 写入权限
+permissions:
+  contents: write
+
 # 这个工作流程需要执行的任务
 jobs:
   process:
