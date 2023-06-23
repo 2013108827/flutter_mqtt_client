@@ -1,13 +1,9 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:mqtt5_client/mqtt5_client.dart';
 import 'package:mqtt_client/api/conversationDBApi.dart';
 import 'package:mqtt_client/pojo/conversation.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-import 'package:typed_data/src/typed_buffer.dart';
 
 import '../../api/messageDBApi.dart';
 import '../../pojo/message.dart';
@@ -33,6 +29,8 @@ class MessagePageState extends State<MessagePage> {
   String _publishedTopic = "";
   String _subscribedTopic = "";
   List<Message> _messageList = [];
+  final MqttPayloadBuilder payloadBuilder = MqttPayloadBuilder();
+  String _messageType = "text";
 
   @override
   void initState() {
@@ -55,12 +53,40 @@ class MessagePageState extends State<MessagePage> {
               )
             ],
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(0.0),
+              preferredSize: const Size.fromHeight(40.0),
               child: Container(
-                color: Colors.amber,
+                height: 40,
+                color: Colors.amber[400],
                 width: MediaQuery.of(context).size.width,
-                child: const Center(
-                  child: Text("已连接"),
+                child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    children: [
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                                "订阅",
+                                style: TextStyle(
+                                  color: Colors.pink
+                                ),
+                            ),
+                            Text(_subscribedTopic)
+                          ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                              "发布",
+                              style: TextStyle(
+                                  color: Colors.pink
+                              )
+                          ),
+                          Text(_publishedTopic)
+                        ],
+                      )
+                    ],
                 ),
               ),
             )
@@ -187,19 +213,27 @@ class MessagePageState extends State<MessagePage> {
           children: [
             Container(
                 width: 240,
+                constraints: const BoxConstraints(
+                  minHeight: 40,
+                ),
                 padding: const EdgeInsets.all(5),
                 decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(10.0)),
                     color: Colors.green),
-                margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                margin: const EdgeInsets.fromLTRB(0, 0, 10, 0),
                 child: Text(
                     message.content,
                     softWrap: true,
-                    style: const TextStyle(color: Colors.black))),
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 20
+                    )
+                )
+            ),
             Container(
               width: 0,
               height: 0,
-              margin: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+              margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
               decoration: const BoxDecoration(
                 border: Border(
                   // 四个值 top right bottom left
@@ -208,11 +242,11 @@ class MessagePageState extends State<MessagePage> {
                       width: 10,
                       style: BorderStyle.solid),
                   right: BorderSide(
-                      color: Colors.transparent, // 朝左;  把颜色改为目标色就可以了；其他的透明
+                      color: Colors.green, // 朝左;  把颜色改为目标色就可以了；其他的透明
                       width: 10,
                       style: BorderStyle.solid),
                   left: BorderSide(
-                      color: Colors.black45, // 朝右；把颜色改为目标色就可以了；其他的透明
+                      color: Colors.transparent, // 朝右；把颜色改为目标色就可以了；其他的透明
                       width: 10,
                       style: BorderStyle.solid),
                   top: BorderSide(
@@ -240,50 +274,82 @@ class MessagePageState extends State<MessagePage> {
       return Container();
     }
 
-    return TextFormField(
-        autofocus: false,
-        keyboardType: TextInputType.text,
-        controller: _messageController,
-        decoration: InputDecoration(
-            // labelText: '消息',
-            labelStyle: const TextStyle(
-              fontSize: 20,
-            ),
-            hintText: '发送消息',
-            //不需要输入框下划线
-            border: InputBorder.none,
-            //右边图标设置
-            suffixIcon: IconButton(
-                onPressed: () {
-                  String text = _messageController.text;
-                  if (text.isNotEmpty) {
-                    print('send message：$text');
-                    Uint8Buffer dataBuffer = Uint8Buffer();
-                    dataBuffer.addAll(const Utf8Encoder().convert(text));
-                    try {
-                      int count = widget.mqttClient.publishMessage(_conversation.publishedTopic.toString(), MqttQos.atLeastOnce, dataBuffer);
-                      if (count > 0) {
-                        _messageController.clear();
-                        Map<String, dynamic> map = {
-                          'conversation_id': _conversation.id,
-                          'type': 1,
-                          'topic': _conversation.publishedTopic,
-                          'content': text,
-                          'created_time': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-                        };
-                        insertMessage(map);
+    return Row(
+      children: [
+        // SizedBox(
+        //   width: 87,
+        //   child:  DropdownButtonFormField(
+        //       value: _messageType,
+        //       items: const [
+        //         DropdownMenuItem(value: 'text', child: Text('PlainText')),
+        //         DropdownMenuItem(value: 'json', child: Text('JSON')),
+        //       ],
+        //       onChanged: (value) {
+        //         if (value != null) {
+        //           setState(() {
+        //             _messageType = value;
+        //           });
+        //         }
+        //       },
+        //       decoration: const InputDecoration(
+        //         //不需要输入框下划线
+        //         border: InputBorder.none,
+        //       ),
+        //   ),
+        // ),
+        Expanded(
+            child: TextFormField(
+                autofocus: false,
+                keyboardType: TextInputType.text,
+                controller: _messageController,
+                decoration: InputDecoration(
+                  // labelText: '消息',
+                    labelStyle: const TextStyle(
+                      fontSize: 20,
+                    ),
+                    hintText: '发送消息',
+                    //不需要输入框下划线
+                    border: InputBorder.none,
+                    // 左边图标设置
+                    // prefix: ,
+                    //右边图标设置
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        String text = _messageController.text;
+                        if (text.isNotEmpty) {
+                          debugPrint('send message：$text');
+                          // Uint8Buffer dataBuffer = Uint8Buffer();
+                          // dataBuffer.addAll(const Utf8Encoder().convert(text));
+                          try {
+                            payloadBuilder.addUTF8String(text);
+                            int count = widget.mqttClient.publishMessage(_conversation.publishedTopic.toString(), MqttQos.atLeastOnce, payloadBuilder.payload!);
+                            // 清空payload
+                            payloadBuilder.clear();
+                            if (count > 0) {
+                              _messageController.clear();
+                              Map<String, dynamic> map = {
+                                'conversation_id': _conversation.id,
+                                'type': 1,
+                                'topic': _conversation.publishedTopic,
+                                'content': text,
+                                'created_time': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                              };
+                              insertMessage(map);
 
-                        queryMessageList();
-                      }
-                    } on Exception catch (e) {
+                              queryMessageList();
+                            }
+                          } on Exception catch (e) {
 
-                      debugPrint(e.toString() + _conversation.publishedTopic.toString());
-                    }
-                  }
-                },
-                icon: const Icon(Icons.send),
+                            debugPrint(e.toString() + _conversation.publishedTopic.toString());
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.send),
+                    )
+                )
             )
         )
+      ],
     );
   }
 

@@ -103,7 +103,8 @@ class ClientAddState extends State<ClientAddFul> {
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction ,
+          // 自动校验方式
+          // autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             children: [
               TextFormField(
@@ -119,6 +120,7 @@ class ClientAddState extends State<ClientAddFul> {
                     // icon: Icon(Icons.person),
                     // border: OutlineInputBorder(),
                   ),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   //校验用户名
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -153,18 +155,19 @@ class ClientAddState extends State<ClientAddFul> {
                 },
               ),
               DropdownButtonFormField(
-                value: _connectType,
-                items: const [
-                  DropdownMenuItem(value: 'tcp', child: Text('TCP')),
-                  DropdownMenuItem(value: 'ws', child: Text('WebSocket')),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _connectType = value;
-                    });
+                  value: _connectType,
+                  hint: const Text("连接方式"),
+                  items: const [
+                    DropdownMenuItem(value: 'tcp', child: Text('TCP')),
+                    DropdownMenuItem(value: 'ws', child: Text('WebSocket')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _connectType = value;
+                      });
+                    }
                   }
-                }
               ),
               TextFormField(
                 autofocus: false,
