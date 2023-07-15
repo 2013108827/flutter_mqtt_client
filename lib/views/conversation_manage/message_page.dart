@@ -186,9 +186,8 @@ class MessagePageState extends State<MessagePage> {
                     borderRadius: BorderRadius.all(Radius.circular(10.0)),
                     color: Colors.black45),
                 margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                child: Text(
+                child: SelectableText(
                     message.content,
-                    softWrap: true,
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20
@@ -221,9 +220,8 @@ class MessagePageState extends State<MessagePage> {
                     borderRadius: BorderRadius.all(Radius.circular(10.0)),
                     color: Colors.green),
                 margin: const EdgeInsets.fromLTRB(0, 0, 10, 0),
-                child: Text(
+                child: SelectableText (
                     message.content,
-                    softWrap: true,
                     style: const TextStyle(
                         color: Colors.black,
                         fontSize: 20

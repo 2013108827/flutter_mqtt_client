@@ -1,5 +1,6 @@
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mqtt5_client/mqtt5_client.dart';
@@ -72,10 +73,13 @@ class ConversationManageState extends State<ConversationManage> {
       body: dataList(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          debugPrint("添加会话");
-          mySimpleDialog(context);
+          if (_connected) {
+            debugPrint("添加会话");
+            mySimpleDialog(context, '添加会话');
+          }
         },
         tooltip: 'Increment',
+        backgroundColor: _connected ? Theme.of(context).colorScheme.inversePrimary : Colors.grey,
         child: const Icon(Icons.add),
       )
     );
@@ -115,14 +119,15 @@ class ConversationManageState extends State<ConversationManage> {
                   );
                 })).then((value) => (value == null || value) ? _enterAgain() : null);
           },
-          // onLongPress: () {
-          //   Navigator.push(context,
-          //       MaterialPageRoute(builder: (context) {
-          //         return ClientAddFul(
-          //           brokerId: broker.id,
-          //         );
-          //       })).then((value) => (value == null || value) ? _enterAgain() : null);
-          // },
+          onLongPress: () {
+            debugPrint('编辑会话');
+            setState(() {
+              _conversationId = conversation.id;
+              _publisherController.text = (conversation.publishedTopic!.isNotEmpty ? conversation.publishedTopic : '')!;
+              _receiverController.text = (conversation.subscribedTopic!.isNotEmpty ? conversation.subscribedTopic : '')!;
+            });
+            mySimpleDialog(context, '编辑会话');
+          },
           trailing: IconButton(
             icon: const Icon(Icons.delete_forever_outlined),
             onPressed: () {
@@ -154,8 +159,8 @@ class ConversationManageState extends State<ConversationManage> {
       });
 
       if (!_connected) {
-        MqttServerClient mqttClient = MqttServerClient.withPort(broker.host, broker.clientId, broker.port);
-        setMqttClient(mqttClient);
+        MqttServerClient mqttClient = MqttServerClient(broker.host, '');
+        setMqttClient(mqttClient, broker);
         setState(() {
           _mqttClient = mqttClient;
         });
@@ -168,7 +173,7 @@ class ConversationManageState extends State<ConversationManage> {
   }
 
   // 新增话题弹窗
-  void mySimpleDialog(BuildContext context) {
+  void mySimpleDialog(BuildContext context, String dialogTitle) {
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -176,27 +181,27 @@ class ConversationManageState extends State<ConversationManage> {
             title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                const Text(
-                    '添加新主题',
-                    style: TextStyle(
-                      fontSize: 25
-                    ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    debugPrint("新增或修改某会话");
-                    if (_publisherController.text.isNotEmpty || _receiverController.text.isNotEmpty) {
-                      saveOrUpdateConversation().then((id) {
-                        queryConversationList();
-                        Navigator.pop(context);
-                        if (_receiverController.text.isNotEmpty) {
-                          addMqttSubscribe(_receiverController.text);
-                        }
-                      });
-                    }
-                  },
-                  color: Colors.green[600],
-                  icon: const Icon(Icons.save_rounded),
+                  Text(
+                      dialogTitle,
+                      style: const TextStyle(
+                        fontSize: 25
+                      ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      debugPrint("新增或修改某会话");
+                      if (_publisherController.text.isNotEmpty || _receiverController.text.isNotEmpty) {
+                        saveOrUpdateConversation().then((id) {
+                          queryConversationList();
+                          Navigator.pop(context);
+                          if (_receiverController.text.isNotEmpty) {
+                            addMqttSubscribe(_receiverController.text);
+                          }
+                        });
+                      }
+                    },
+                    color: Colors.green[600],
+                    icon: const Icon(Icons.save_rounded),
                 )
               ],
             ),
@@ -282,7 +287,17 @@ class ConversationManageState extends State<ConversationManage> {
     queryConversationList();
   }
 
-  void setMqttClient(MqttServerClient mqttClient) {
+  Future<void> setMqttClient(MqttServerClient mqttClient, Broker broker) async {
+    // 使用websocket连接
+    if (broker.connectType == 'ws') {
+      mqttClient.useWebSocket = true;
+    }
+    mqttClient.port = _broker.port; // ( or whatever your ws port is)
+    /// You can also supply your own websocket protocol list or disable this feature using the websocketProtocols
+    /// setter, read the API docs for further details here, the vast majority of brokers will support the client default
+    /// list so in most cases you can ignore this.
+    /// client.websocketProtocols = ['myString'];
+
     /// 是否打印mqtt日志信息
     mqttClient.logging(on: false);
     /// 设置端口号。创建时已经指定端口号就不需要设置。
@@ -303,13 +318,42 @@ class ConversationManageState extends State<ConversationManage> {
     mqttClient.onSubscribeFail = onSubscribeFail;
     /// ping pong响应回调
     mqttClient.pongCallback = pong;
+    // 自动断线重连
+    mqttClient.autoReconnect = true;
 
-    mqttClient.connect();
+    // mqttClient.connect();
+    /// Connect the client, any errors here are communicated by raising of the appropriate exception. Note
+    /// in some circumstances the broker will just disconnect us, see the spec about this, we however will
+    /// never send malformed messages.
+    try {
+      await mqttClient.connect();
+    } on MqttNoConnectionException catch (e) {
+      // Raised by the client when connection fails.
+      debugPrint('EXAMPLE::client exception - $e');
+      setState(() {
+        _appBarSubTitle = "Broker连接失败，请检查信息是否正确";
+      });
+      mqttClient.disconnect();
+    } on SocketException catch (e) {
+      // Raised by the socket layer
+      debugPrint('EXAMPLE::socket exception - $e');
+      setState(() {
+        _appBarSubTitle = "Socket连接失败，请检查信息是否正确";
+      });
+      mqttClient.disconnect();
+    } on WebSocketException catch(e) {
+      // Raised by the socket layer
+      debugPrint('EXAMPLE::WebSocket exception - $e');
+      setState(() {
+        _appBarSubTitle = "WebSocket连接失败，请检查信息是否正确";
+      });
+      mqttClient.disconnect();
+    }
   }
 
   void onConnected() {
     setState(() {
-      _appBarSubTitle = "${_broker.connectType}://${_broker.host}:${_broker.port}已连接";
+      _appBarSubTitle = "${_broker.host}:${_broker.port}已连接";
       _connected = true;
     });
 

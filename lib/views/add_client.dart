@@ -63,6 +63,9 @@ class ClientAddState extends State<ClientAddFul> {
                 debugPrint('保存按钮');
                 // print(broker.toJson());
                 if (validateForm()) {
+                  if (_connectType == 'ws' && !_hostController.text.startsWith('ws://') && !_hostController.text.startsWith('wss://')) {
+                    _hostController.text = 'ws://${_hostController.text}';
+                  }
                   saveOrUpdateBroker().then((id) => {
                       Navigator.pop(context, true),
                   });
@@ -165,6 +168,9 @@ class ClientAddState extends State<ClientAddFul> {
                     if (value != null) {
                       setState(() {
                         _connectType = value;
+                        if (!_hostController.text.startsWith('ws://') && !_hostController.text.startsWith('wss://')) {
+                          _hostController.text = 'ws://${_hostController.text}';
+                        }
                       });
                     }
                   }
@@ -178,7 +184,7 @@ class ClientAddState extends State<ClientAddFul> {
                     labelStyle: TextStyle(
                       fontSize: 20,
                     ),
-                    hintText: 'broker服务器的地址'
+                    hintText: 'broker服务器的地址(包括path)'
                 ),
                 // 表单校验
                 validator: (value) {
