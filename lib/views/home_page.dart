@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/utils/DatabaseApiUtils.dart';
 import 'package:mqtt_client/views/add_client.dart';
@@ -13,7 +12,6 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const HomePageFul();
   }
-
 }
 
 class HomePageFul extends StatefulWidget {
@@ -23,11 +21,9 @@ class HomePageFul extends StatefulWidget {
   State<StatefulWidget> createState() {
     return HomePageState();
   }
-
 }
 
 class HomePageState extends State<HomePageFul> {
-
   List<Broker> _brokerList = [];
 
   @override
@@ -48,10 +44,9 @@ class HomePageState extends State<HomePageFul> {
       body: dataList(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => {
-          Navigator.push(context,
-            MaterialPageRoute(builder: (context) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
             return const ClientAddFul(
-                brokerId: 0,
+              brokerId: 0,
             );
           })).then((value) => (value == null || value) ? _enterAgain() : null)
         },
@@ -60,7 +55,6 @@ class HomePageState extends State<HomePageFul> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
-
 
   Widget dataList() {
     if (_brokerList.isEmpty) {
@@ -75,26 +69,26 @@ class HomePageState extends State<HomePageFul> {
       itemBuilder: (BuildContext context, int index) {
         Broker broker = _brokerList[index];
         return ListTile(
-          title: Text('${index+1} - ${broker.alias}'),
+          title: Text('${index + 1} - ${broker.alias}'),
           subtitle: Text('${broker.host}:${broker.port}'),
           visualDensity: VisualDensity.comfortable,
           splashColor: Theme.of(context).colorScheme.inversePrimary,
           onTap: () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) {
-                  return ConversationManage(
-                    brokerId: broker.id,
-                    brokerAlias: broker.alias,
-                  );
-                })).then((value) => (value == null || value) ? _enterAgain() : null);
+            Navigator.push(context, MaterialPageRoute(builder: (context) {
+              return ConversationManage(
+                brokerId: broker.id,
+                brokerAlias: broker.alias,
+              );
+            })).then(
+                (value) => (value == null || value) ? _enterAgain() : null);
           },
           onLongPress: () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) {
-                  return ClientAddFul(
-                    brokerId: broker.id,
-                  );
-                })).then((value) => (value == null || value) ? _enterAgain() : null);
+            Navigator.push(context, MaterialPageRoute(builder: (context) {
+              return ClientAddFul(
+                brokerId: broker.id,
+              );
+            })).then(
+                (value) => (value == null || value) ? _enterAgain() : null);
           },
           // trailing: IconButton(
           //   icon: const Icon(Icons.delete_forever_outlined),
@@ -120,7 +114,7 @@ class HomePageState extends State<HomePageFul> {
       _brokerList = brokerList;
     });
   }
-  
+
   void _enterAgain() {
     queryBrokerList();
   }

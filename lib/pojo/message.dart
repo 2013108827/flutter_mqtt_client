@@ -1,4 +1,3 @@
-
 class Message {
   late int id;
   // 会话id
@@ -10,14 +9,13 @@ class Message {
   late String content;
   late DateTime createdTime;
 
-  Message({
-    required this.id,
-    required this.conversationId,
-    required this.type,
-    required this.topic,
-    required this.content,
-    required this.createdTime
-  });
+  Message(
+      {required this.id,
+      required this.conversationId,
+      required this.type,
+      required this.topic,
+      required this.content,
+      required this.createdTime});
 
   Message.fromJson(Map<String, dynamic> json) {
     id = json['id'];

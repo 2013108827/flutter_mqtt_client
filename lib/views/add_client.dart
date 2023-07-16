@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,13 +8,12 @@ import 'package:uuid/uuid.dart';
 import '../pojo/broker.dart';
 
 class ClientAddFul extends StatefulWidget {
-
   // 数据库id,没有时传0
   final int brokerId;
-  
+
   const ClientAddFul({
-    super.key, 
-    required this.brokerId, 
+    super.key,
+    required this.brokerId,
     // required this.database
   });
 
@@ -27,7 +24,6 @@ class ClientAddFul extends StatefulWidget {
 }
 
 class ClientAddState extends State<ClientAddFul> {
-
   Uuid uuid = const Uuid();
   int _brokerId = 0;
   final TextEditingController _aliasController = TextEditingController();
@@ -50,30 +46,31 @@ class ClientAddState extends State<ClientAddFul> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Center(
-          child: Text(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: const Center(
+            child: Text(
               '添加Broker',
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-              onPressed: () {
-                debugPrint('保存按钮');
-                // print(broker.toJson());
-                if (validateForm()) {
-                  if (_connectType == 'ws' && !_hostController.text.startsWith('ws://') && !_hostController.text.startsWith('wss://')) {
-                    _hostController.text = 'ws://${_hostController.text}';
+          actions: [
+            IconButton(
+                onPressed: () {
+                  debugPrint('保存按钮');
+                  // print(broker.toJson());
+                  if (validateForm()) {
+                    if (_connectType == 'ws' &&
+                        !_hostController.text.startsWith('ws://') &&
+                        !_hostController.text.startsWith('wss://')) {
+                      _hostController.text = 'ws://${_hostController.text}';
+                    }
+                    saveOrUpdateBroker().then((id) => {
+                          Navigator.pop(context, true),
+                        });
                   }
-                  saveOrUpdateBroker().then((id) => {
-                      Navigator.pop(context, true),
-                  });
-                }
-              },
-              icon: const Icon(Icons.save)
-          ),
-          IconButton(
+                },
+                icon: const Icon(Icons.save)),
+            IconButton(
               onPressed: () {
                 debugPrint('删除按钮');
                 if (_brokerId != 0) {
@@ -82,11 +79,10 @@ class ClientAddState extends State<ClientAddFul> {
                 }
               },
               icon: const Icon(Icons.delete_forever_rounded),
-          )
-        ],
-      ),
-      body: loginForm()
-    );
+            )
+          ],
+        ),
+        body: loginForm());
   }
 
   Widget loginForm() {
@@ -101,146 +97,141 @@ class ClientAddState extends State<ClientAddFul> {
     }
 
     return Padding(
-      //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称        //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称
-      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 24.0),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          // 自动校验方式
-          // autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            children: [
-              TextFormField(
+        //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称        //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 24.0),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            // 自动校验方式
+            // autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              children: [
+                TextFormField(
+                    autofocus: false,
+                    keyboardType: TextInputType.text,
+                    controller: _aliasController,
+                    decoration: const InputDecoration(
+                      labelText: '别名',
+                      labelStyle: TextStyle(
+                        fontSize: 20,
+                      ),
+                      hintText: '当前配置的别名',
+                      // icon: Icon(Icons.person),
+                      // border: OutlineInputBorder(),
+                    ),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    //校验用户名
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '别名不可为空';
+                      }
+                      return null;
+                    }),
+                TextFormField(
                   autofocus: false,
                   keyboardType: TextInputType.text,
-                  controller: _aliasController,
-                  decoration: const InputDecoration(
-                    labelText: '别名',
-                    labelStyle: TextStyle(
-                      fontSize: 20,
-                    ),
-                    hintText: '当前配置的别名',
-                    // icon: Icon(Icons.person),
-                    // border: OutlineInputBorder(),
-                  ),
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  //校验用户名
+                  controller: _clientIdController,
+                  decoration: InputDecoration(
+                      labelText: '客户端ID',
+                      labelStyle: const TextStyle(
+                        fontSize: 20,
+                      ),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          debugPrint("随机生成客户端ID");
+                          _clientIdController.text =
+                              uuid.v1().replaceAll("-", "");
+                        },
+                        icon: const Icon(Icons.autorenew),
+                      )),
+                  // 表单校验
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '别名不可为空';
+                      return '客户端ID不可为空';
                     }
                     return null;
-                  }
-              ),
-              TextFormField(
-                autofocus: false,
-                keyboardType: TextInputType.text,
-                controller: _clientIdController,
-                decoration: InputDecoration(
-                    labelText: '客户端ID',
-                    labelStyle: const TextStyle(
-                      fontSize: 20,
-                    ),
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        debugPrint("随机生成客户端ID");
-                        _clientIdController.text = uuid.v1().replaceAll("-", "");
-                      },
-                      icon: const Icon(Icons.autorenew),
-                    )
+                    return null;
+                  },
                 ),
-                // 表单校验
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '客户端ID不可为空';
-                  }
-                  return null;return null;
-                },
-              ),
-              DropdownButtonFormField(
-                  value: _connectType,
-                  hint: const Text("连接方式"),
-                  items: const [
-                    DropdownMenuItem(value: 'tcp', child: Text('TCP')),
-                    DropdownMenuItem(value: 'ws', child: Text('WebSocket')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _connectType = value;
-                        if (!_hostController.text.startsWith('ws://') && !_hostController.text.startsWith('wss://')) {
-                          _hostController.text = 'ws://${_hostController.text}';
-                        }
-                      });
+                DropdownButtonFormField(
+                    value: _connectType,
+                    hint: const Text("连接方式"),
+                    items: const [
+                      DropdownMenuItem(value: 'tcp', child: Text('TCP')),
+                      DropdownMenuItem(value: 'ws', child: Text('WebSocket')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _connectType = value;
+                          if (!_hostController.text.startsWith('ws://') &&
+                              !_hostController.text.startsWith('wss://')) {
+                            _hostController.text =
+                                'ws://${_hostController.text}';
+                          }
+                        });
+                      }
+                    }),
+                TextFormField(
+                  autofocus: false,
+                  keyboardType: TextInputType.text,
+                  controller: _hostController,
+                  decoration: const InputDecoration(
+                      labelText: '服务器地址',
+                      labelStyle: TextStyle(
+                        fontSize: 20,
+                      ),
+                      hintText: 'broker服务器的地址(包括path)'),
+                  // 表单校验
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '服务器地址不可为空';
                     }
-                  }
-              ),
-              TextFormField(
-                autofocus: false,
-                keyboardType: TextInputType.text,
-                controller: _hostController,
-                decoration: const InputDecoration(
-                    labelText: '服务器地址',
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  autofocus: false,
+                  keyboardType: TextInputType.number,
+                  controller: _portController,
+                  decoration: const InputDecoration(
+                    labelText: '端口',
                     labelStyle: TextStyle(
                       fontSize: 20,
                     ),
-                    hintText: 'broker服务器的地址(包括path)'
-                ),
-                // 表单校验
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '服务器地址不可为空';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                autofocus: false,
-                keyboardType: TextInputType.number,
-                controller: _portController,
-                decoration: const InputDecoration(
-                  labelText: '端口',
-                  labelStyle: TextStyle(
-                    fontSize: 20,
                   ),
+                  // 表单校验
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '端口号不可为空';
+                    }
+                    return null;
+                  },
                 ),
-                // 表单校验
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '端口号不可为空';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                  autofocus: false,
-                  keyboardType: TextInputType.text,
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                      labelText: '用户名',
-                      labelStyle: TextStyle(
-                        fontSize: 20,
-                      ),
-                      hintText: '如果有的的话需要输入'
-                  )
-              ),
-              TextFormField(
-                  autofocus: false,
-                  keyboardType: TextInputType.text,
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                      labelText: '密码',
-                      labelStyle: TextStyle(
-                        fontSize: 20,
-                      ),
-                      hintText: '如果有的的话需要输入'
-                  )
-              )
-            ],
+                TextFormField(
+                    autofocus: false,
+                    keyboardType: TextInputType.text,
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                        labelText: '用户名',
+                        labelStyle: TextStyle(
+                          fontSize: 20,
+                        ),
+                        hintText: '如果有的的话需要输入')),
+                TextFormField(
+                    autofocus: false,
+                    keyboardType: TextInputType.text,
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                        labelText: '密码',
+                        labelStyle: TextStyle(
+                          fontSize: 20,
+                        ),
+                        hintText: '如果有的的话需要输入'))
+              ],
+            ),
           ),
-        ),
-      )
-    );
+        ));
   }
 
   void queryBroker() async {
@@ -258,7 +249,6 @@ class ClientAddState extends State<ClientAddFul> {
       });
     }
   }
-
 
   // 保存/更新broker到数据库
   Future<int> saveOrUpdateBroker() async {

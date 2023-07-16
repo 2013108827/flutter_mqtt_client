@@ -1,4 +1,3 @@
-
 class Conversation {
   late int id;
   late int brokerId;
@@ -8,15 +7,14 @@ class Conversation {
   late DateTime createdTime;
   late DateTime modifiedTime;
 
-  Conversation({
-    required this.id,
-    required this.brokerId,
-    this.publishedTopic,
-    this.subscribedTopic,
-    this.unreadAmount,
-    required this.createdTime,
-    required this.modifiedTime
-  });
+  Conversation(
+      {required this.id,
+      required this.brokerId,
+      this.publishedTopic,
+      this.subscribedTopic,
+      this.unreadAmount,
+      required this.createdTime,
+      required this.modifiedTime});
 
   Conversation.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -66,7 +64,8 @@ class Conversation {
       subscribedTopic: map['subscribed_topic'] as String,
       unreadAmount: map['unread_amount'] as int,
       createdTime: DateTime.fromMillisecondsSinceEpoch(createdTimestamp * 1000),
-      modifiedTime: DateTime.fromMillisecondsSinceEpoch(modifiedTimestamp * 1000),
+      modifiedTime:
+          DateTime.fromMillisecondsSinceEpoch(modifiedTimestamp * 1000),
     );
   }
 }

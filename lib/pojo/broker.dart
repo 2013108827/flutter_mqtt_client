@@ -10,18 +10,17 @@ class Broker {
   late DateTime createdTime;
   late DateTime modifiedTime;
 
-  Broker({
-        required this.id,
-        required this.alias,
-        required this.connectType,
-        required this.host,
-        required this.port,
-        this.username,
-        this.password,
-        required this.clientId,
-        required this.createdTime,
-        required this.modifiedTime
-  });
+  Broker(
+      {required this.id,
+      required this.alias,
+      required this.connectType,
+      required this.host,
+      required this.port,
+      this.username,
+      this.password,
+      required this.clientId,
+      required this.createdTime,
+      required this.modifiedTime});
 
   Broker.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -83,8 +82,8 @@ class Broker {
       password: map['password'] as String,
       clientId: map['client_id'] as String,
       createdTime: DateTime.fromMillisecondsSinceEpoch(createdTimestamp * 1000),
-      modifiedTime: DateTime.fromMillisecondsSinceEpoch(modifiedTimestamp * 1000),
+      modifiedTime:
+          DateTime.fromMillisecondsSinceEpoch(modifiedTimestamp * 1000),
     );
   }
-
 }

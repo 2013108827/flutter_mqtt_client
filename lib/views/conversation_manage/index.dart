@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,17 +13,13 @@ import '../../pojo/conversation.dart';
 import '../../utils/DatabaseApiUtils.dart';
 
 class ConversationManage extends StatefulWidget {
-
   // broker的数据库id
   final int brokerId;
   // broker别名
   final String brokerAlias;
 
-  const ConversationManage({
-    super.key,
-    required this.brokerId,
-    required this.brokerAlias
-  });
+  const ConversationManage(
+      {super.key, required this.brokerId, required this.brokerAlias});
 
   @override
   State<StatefulWidget> createState() {
@@ -33,7 +28,6 @@ class ConversationManage extends StatefulWidget {
 }
 
 class ConversationManageState extends State<ConversationManage> {
-
   List<Conversation> _conversationList = [];
   int _conversationListLength = 0;
   int _conversationId = 0;
@@ -56,33 +50,33 @@ class ConversationManageState extends State<ConversationManage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('${widget.brokerAlias}-会话列表'),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(0.0),
-            child: Container(
-              color: Colors.amber,
-              width: MediaQuery.of(context).size.width,
-              child: Center(
-                child: Text(_appBarSubTitle),
+        appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            title: Text('${widget.brokerAlias}-会话列表'),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(0.0),
+              child: Container(
+                color: Colors.amber,
+                width: MediaQuery.of(context).size.width,
+                child: Center(
+                  child: Text(_appBarSubTitle),
+                ),
               ),
-            ),
-          )
-      ),
-      body: dataList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_connected) {
-            debugPrint("添加会话");
-            mySimpleDialog(context, '添加会话');
-          }
-        },
-        tooltip: 'Increment',
-        backgroundColor: _connected ? Theme.of(context).colorScheme.inversePrimary : Colors.grey,
-        child: const Icon(Icons.add),
-      )
-    );
+            )),
+        body: dataList(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            if (_connected) {
+              debugPrint("添加会话");
+              mySimpleDialog(context, '添加会话');
+            }
+          },
+          tooltip: 'Increment',
+          backgroundColor: _connected
+              ? Theme.of(context).colorScheme.inversePrimary
+              : Colors.grey,
+          child: const Icon(Icons.add),
+        ));
   }
 
   Widget dataList() {
@@ -98,8 +92,10 @@ class ConversationManageState extends State<ConversationManage> {
       itemBuilder: (BuildContext context, int index) {
         Conversation conversation = _conversationList[index];
         String title = (index + 1).toString();
-        title += ' - ${(conversation.publishedTopic!.isNotEmpty ? conversation.publishedTopic : '')!}';
-        title += ' + ${(conversation.subscribedTopic!.isNotEmpty ? conversation.subscribedTopic : '')!}';
+        title +=
+            ' - ${(conversation.publishedTopic!.isNotEmpty ? conversation.publishedTopic : '')!}';
+        title +=
+            ' + ${(conversation.subscribedTopic!.isNotEmpty ? conversation.subscribedTopic : '')!}';
 
         return ListTile(
           title: Text(title),
@@ -110,21 +106,27 @@ class ConversationManageState extends State<ConversationManage> {
             setState(() {
               _conversationId = conversation.id;
             });
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) {
-                  return MessagePage(
-                    key: _messagePageKey,
-                    conversationId: conversation.id,
-                    mqttClient: _mqttClient,
-                  );
-                })).then((value) => (value == null || value) ? _enterAgain() : null);
+            Navigator.push(context, MaterialPageRoute(builder: (context) {
+              return MessagePage(
+                key: _messagePageKey,
+                conversationId: conversation.id,
+                mqttClient: _mqttClient,
+              );
+            })).then(
+                (value) => (value == null || value) ? _enterAgain() : null);
           },
           onLongPress: () {
             debugPrint('编辑会话');
             setState(() {
               _conversationId = conversation.id;
-              _publisherController.text = (conversation.publishedTopic!.isNotEmpty ? conversation.publishedTopic : '')!;
-              _receiverController.text = (conversation.subscribedTopic!.isNotEmpty ? conversation.subscribedTopic : '')!;
+              _publisherController.text =
+                  (conversation.publishedTopic!.isNotEmpty
+                      ? conversation.publishedTopic
+                      : '')!;
+              _receiverController.text =
+                  (conversation.subscribedTopic!.isNotEmpty
+                      ? conversation.subscribedTopic
+                      : '')!;
             });
             mySimpleDialog(context, '编辑会话');
           },
@@ -132,13 +134,16 @@ class ConversationManageState extends State<ConversationManage> {
             icon: const Icon(Icons.delete_forever_outlined),
             onPressed: () {
               deleteConversation(conversation.id).then((value) => {
-                if (value > 0) {
-                  if (conversation.subscribedTopic!.isNotEmpty) {
-                    _mqttClient.unsubscribeStringTopic(conversation.subscribedTopic.toString())
-                  },
-                  queryConversationList()
-                }
-              });
+                    if (value > 0)
+                      {
+                        if (conversation.subscribedTopic!.isNotEmpty)
+                          {
+                            _mqttClient.unsubscribeStringTopic(
+                                conversation.subscribedTopic.toString())
+                          },
+                        queryConversationList()
+                      }
+                  });
             },
           ),
         );
@@ -151,7 +156,8 @@ class ConversationManageState extends State<ConversationManage> {
 
   // 查询已经存储的会话集合
   void queryConversationList({String? searchKey}) async {
-    List<Conversation> conversationList = await getConversations(searchKey: searchKey, brokerId: widget.brokerId);
+    List<Conversation> conversationList =
+        await getConversations(searchKey: searchKey, brokerId: widget.brokerId);
     Broker? broker = await getBrokerById(id: widget.brokerId);
     if (broker != null) {
       setState(() {
@@ -179,29 +185,28 @@ class ConversationManageState extends State<ConversationManage> {
         builder: (BuildContext context) {
           return SimpleDialog(
             title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                      dialogTitle,
-                      style: const TextStyle(
-                        fontSize: 25
-                      ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      debugPrint("新增或修改某会话");
-                      if (_publisherController.text.isNotEmpty || _receiverController.text.isNotEmpty) {
-                        saveOrUpdateConversation().then((id) {
-                          queryConversationList();
-                          Navigator.pop(context);
-                          if (_receiverController.text.isNotEmpty) {
-                            addMqttSubscribe(_receiverController.text);
-                          }
-                        });
-                      }
-                    },
-                    color: Colors.green[600],
-                    icon: const Icon(Icons.save_rounded),
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  dialogTitle,
+                  style: const TextStyle(fontSize: 25),
+                ),
+                IconButton(
+                  onPressed: () {
+                    debugPrint("新增或修改某会话");
+                    if (_publisherController.text.isNotEmpty ||
+                        _receiverController.text.isNotEmpty) {
+                      saveOrUpdateConversation().then((id) {
+                        queryConversationList();
+                        Navigator.pop(context);
+                        if (_receiverController.text.isNotEmpty) {
+                          addMqttSubscribe(_receiverController.text);
+                        }
+                      });
+                    }
+                  },
+                  color: Colors.green[600],
+                  icon: const Icon(Icons.save_rounded),
                 )
               ],
             ),
@@ -209,7 +214,8 @@ class ConversationManageState extends State<ConversationManage> {
             contentPadding: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 10.0),
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12.0),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 12.0),
                 child: Column(
                   children: [
                     TextFormField(
@@ -241,9 +247,7 @@ class ConversationManageState extends State<ConversationManage> {
                     const Center(
                       child: Text(
                         '*发布或订阅topic至少填一个',
-                        style: TextStyle(
-                            color: Colors.red
-                        ),
+                        style: TextStyle(color: Colors.red),
                       ),
                     ),
                   ],
@@ -251,8 +255,7 @@ class ConversationManageState extends State<ConversationManage> {
               )
             ],
           );
-        }
-    );
+        });
   }
 
   // 新增/更新本地会话
@@ -300,22 +303,29 @@ class ConversationManageState extends State<ConversationManage> {
 
     /// 是否打印mqtt日志信息
     mqttClient.logging(on: false);
+
     /// 设置端口号。创建时已经指定端口号就不需要设置。
     /// mqttClient.port = port;
     /// 设置协议版本，默认是3.1，根据服务器需要的版本来设置
     /// _client.setProtocolV31();
     /// 保持连接ping-pong周期。默认不设置时关闭。
     mqttClient.keepAlivePeriod = 60;
+
     /// 连接成功回调
     mqttClient.onConnected = onConnected;
+
     /// 连接断开回调
     mqttClient.onDisconnected = onDisconnected;
+
     /// 取消订阅回调
     mqttClient.onUnsubscribed = onUnsubscribed;
+
     /// 订阅成功回调
     mqttClient.onSubscribed = onSubscribed;
+
     /// 订阅失败回调
     mqttClient.onSubscribeFail = onSubscribeFail;
+
     /// ping pong响应回调
     mqttClient.pongCallback = pong;
     // 自动断线重连
@@ -326,7 +336,7 @@ class ConversationManageState extends State<ConversationManage> {
     /// in some circumstances the broker will just disconnect us, see the spec about this, we however will
     /// never send malformed messages.
     try {
-      await mqttClient.connect();
+      await mqttClient.connect(broker.username, broker.password);
     } on MqttNoConnectionException catch (e) {
       // Raised by the client when connection fails.
       debugPrint('EXAMPLE::client exception - $e');
@@ -341,7 +351,7 @@ class ConversationManageState extends State<ConversationManage> {
         _appBarSubTitle = "Socket连接失败，请检查信息是否正确";
       });
       mqttClient.disconnect();
-    } on WebSocketException catch(e) {
+    } on WebSocketException catch (e) {
       // Raised by the socket layer
       debugPrint('EXAMPLE::WebSocket exception - $e');
       setState(() {
@@ -388,7 +398,7 @@ class ConversationManageState extends State<ConversationManage> {
 
   void runSubscribeFun() {
     if (_mqttClient.connectionStatus?.state == MqttConnectionState.connected) {
-      if(_conversationList.isNotEmpty) {
+      if (_conversationList.isNotEmpty) {
         for (Conversation item in _conversationList) {
           if (item.subscribedTopic!.isNotEmpty) {
             addMqttSubscribe(item.subscribedTopic.toString());
@@ -403,13 +413,15 @@ class ConversationManageState extends State<ConversationManage> {
     _mqttClient.updates.listen((event) {
       MqttPublishMessage recMess = event[0].payload as MqttPublishMessage;
       // 转成字符串
-      String pt = const Utf8Decoder().convert(recMess.payload.message as List<int>);
+      String pt =
+          const Utf8Decoder().convert(recMess.payload.message as List<int>);
       String? subscribedTopic = event[0].topic;
       if (subscribedTopic != null) {
         debugPrint("接收到了主题$subscribedTopic的消息： $pt");
-        getConversationsBySubscribedTopic(subscribedTopic: subscribedTopic,
-            brokerId:_broker.id).then((conversationList) {
-          if(conversationList.isNotEmpty) {
+        getConversationsBySubscribedTopic(
+                subscribedTopic: subscribedTopic, brokerId: _broker.id)
+            .then((conversationList) {
+          if (conversationList.isNotEmpty) {
             for (Conversation conversation in conversationList) {
               Map<String, dynamic> map = {
                 'conversation_id': conversation.id,
