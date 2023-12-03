@@ -198,10 +198,10 @@ class ConversationManageState extends State<ConversationManage> {
                         _receiverController.text.isNotEmpty) {
                       saveOrUpdateConversation().then((id) {
                         queryConversationList();
-                        Navigator.pop(context);
                         if (_receiverController.text.isNotEmpty) {
                           addMqttSubscribe(_receiverController.text);
                         }
+                        Navigator.pop(context);
                       });
                     }
                   },
