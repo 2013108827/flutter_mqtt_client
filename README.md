@@ -3,14 +3,5 @@
 用flutter写的mqtt客户端
 
 ## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1、联系flutter写着玩的个APP，
+2、已知的有个bug，第一次添加订阅后需要退回首页才能正常使用这个订阅(不知道咋修，知道的可以踢我)
