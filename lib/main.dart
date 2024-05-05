@@ -1,18 +1,34 @@
+
+
+import 'package:dual_screen/dual_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:mqtt_client/pojo/dualPanel.dart';
+import 'package:mqtt_client/router/index.dart';
+import 'package:mqtt_client/views/empty_page.dart';
 import 'package:mqtt_client/views/home_page.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => DualPanel()),
+          ],
+     child: MyApp(),
+     ),
+  );
 }
 
+
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      onGenerateRoute: _routeGenerator,
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -32,8 +48,85 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      // home: const HomePage(),
+      home: TwoPane(
+        startPane: const HomePage(),
+        endPane: const EmptyPage(),
+        paneProportion: 0.5,
+        panePriority: MediaQuery.of(context).size.width > 500 ? TwoPanePriority.both : TwoPanePriority.start
+        ),
     );
+  }
+
+  List<Widget> routeList = [];
+
+  /// 实现路由守卫
+  Route _routeGenerator(RouteSettings settings) {
+    debugPrint('RouteSettings: $settings');
+    final name = settings.name;
+
+    var router = constantRoutes[name];
+    debugPrint("router: $router");
+    if (router == null) {
+      return MaterialPageRoute(builder: (_) => const EmptyPage());
+    }
+
+    // 用户权限认证的逻辑处理
+    // ......
+
+    Object? arguments = settings.arguments ?? {};
+
+    return MaterialPageRoute(builder: (context) {
+      print("*****************************走到了这里***********************");
+
+      DualPanel dualPanel = context.watch<DualPanel>();
+
+      switch (router["routeMethod"]) {
+        case "endPanelPush":
+          dualPanel.endPanelPush(context, router['widget'](context, arguments: arguments));
+          break;
+        case "newPagePush":
+          dualPanel.newPagePush(router['widget'](context, arguments: arguments));
+          break;
+      }
+
+      print("start: ${dualPanel.startPaneList}");
+      print("end: ${dualPanel.endPanelList}");
+
+      return TwoPane(
+        startPane: dualPanel.startPanel,
+        endPane: dualPanel.endPanel,
+        paneProportion: 0.5,
+        panePriority: MediaQuery.of(context).size.width > 500 ? TwoPanePriority.both : TwoPanePriority.start,
+      );
+
+      // if (MediaQuery.of(context).size.width > 500) {
+      //   DualPanel dualPanel = context.watch<DualPanel>();
+      //
+      //   switch (router["routeMethod"]) {
+      //     case "endPanelPush":
+      //       dualPanel.endPanelPush(router['widget'](context, arguments: arguments));
+      //       break;
+      //     case "pushNewPage":
+      //       dualPanel.newPagePush(router['widget'](context, arguments: arguments));
+      //       break;
+      //   }
+      //
+      //   print(dualPanel.endPanel);
+      //
+      //   return TwoPane(
+      //     startPane: dualPanel.startPanel,
+      //     endPane: dualPanel.endPanel,
+      //     paneProportion: 0.5,
+      //     panePriority: MediaQuery.of(context).size.width > 500 ? TwoPanePriority.both : TwoPanePriority.start,
+      //   );
+      // }
+      // return router['widget'](context, arguments: arguments);
+    });
+
+    // return MaterialPageRoute(builder: (context) {
+    //   return router['widget'](context);
+    // });
   }
 }
 

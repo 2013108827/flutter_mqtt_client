@@ -2,18 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:mqtt_client/pojo/dualPanel.dart';
 import 'package:mqtt_client/utils/DatabaseApiUtils.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../pojo/broker.dart';
 
 class ClientAddFul extends StatefulWidget {
+
+  static const routeName = 'ClientAdd';
+
   // 数据库id,没有时传0
-  final int brokerId;
+  final Map arguments;
 
   const ClientAddFul({
     super.key,
-    required this.brokerId,
+    required this.arguments,
     // required this.database
   });
 
@@ -24,6 +29,7 @@ class ClientAddFul extends StatefulWidget {
 }
 
 class ClientAddState extends State<ClientAddFul> {
+  int initBrokerId = 0;
   Uuid uuid = const Uuid();
   int _brokerId = 0;
   final TextEditingController _aliasController = TextEditingController();
@@ -38,16 +44,28 @@ class ClientAddState extends State<ClientAddFul> {
   @override
   void initState() {
     super.initState();
-    if (widget.brokerId != 0) {
+    int brokerId = widget.arguments['brokerId'];
+    setState(() {
+      initBrokerId = brokerId;
+    });
+
+    if (initBrokerId != 0) {
       queryBroker();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          // leading: IconButton(
+          //   icon: const Icon(Icons.close),
+          //   onPressed: () {
+          //     context.read<DualPanel>().endPanelPop(context);
+          //   },
+          // ),
           title: const Center(
             child: Text(
               '添加Broker',
@@ -80,13 +98,14 @@ class ClientAddState extends State<ClientAddFul> {
               },
               icon: const Icon(Icons.delete_forever_rounded),
             )
-          ],
+            ],
+          // automaticallyImplyLeading: false
         ),
         body: loginForm());
   }
 
   Widget loginForm() {
-    if (_brokerId == 0 && widget.brokerId != 0) {
+    if (_brokerId == 0 && initBrokerId != 0) {
       // 编辑时先载loading动画
       return Center(
         child: LoadingAnimationWidget.newtonCradle(
@@ -235,7 +254,7 @@ class ClientAddState extends State<ClientAddFul> {
   }
 
   void queryBroker() async {
-    Broker? broker = await getBrokerById(id: widget.brokerId);
+    Broker? broker = await getBrokerById(id: initBrokerId);
     if (broker != null) {
       setState(() {
         _brokerId = broker.id;

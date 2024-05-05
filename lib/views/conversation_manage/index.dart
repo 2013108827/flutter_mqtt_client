@@ -13,13 +13,13 @@ import '../../pojo/conversation.dart';
 import '../../utils/DatabaseApiUtils.dart';
 
 class ConversationManage extends StatefulWidget {
-  // broker的数据库id
-  final int brokerId;
-  // broker别名
-  final String brokerAlias;
 
-  const ConversationManage(
-      {super.key, required this.brokerId, required this.brokerAlias});
+  static const routeName = 'ConversationManage';
+
+  // 数据库id,没有时传0
+  final Map arguments;
+
+  const ConversationManage({super.key, required this.arguments});
 
   @override
   State<StatefulWidget> createState() {
@@ -28,6 +28,11 @@ class ConversationManage extends StatefulWidget {
 }
 
 class ConversationManageState extends State<ConversationManage> {
+  // broker的数据库id
+  int initBrokerId = 0;
+  // broker别名
+  String initBrokerAlias = "";
+
   List<Conversation> _conversationList = [];
   int _conversationListLength = 0;
   int _conversationId = 0;
@@ -42,7 +47,19 @@ class ConversationManageState extends State<ConversationManage> {
   @override
   void initState() {
     super.initState();
-    if (widget.brokerId != 0) {
+    if (widget.arguments["initBrokerId"] != null) {
+      setState(() {
+        initBrokerId = widget.arguments["initBrokerId"];
+      });
+
+    }
+    if (widget.arguments["initBrokerAlias"] != null) {
+      setState(() {
+        initBrokerAlias = widget.arguments["initBrokerAlias"];
+      });
+    }
+
+    if (initBrokerId != 0) {
       queryConversationList();
     }
   }
@@ -52,7 +69,7 @@ class ConversationManageState extends State<ConversationManage> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-            title: Text('${widget.brokerAlias}-会话列表'),
+            title: Text('$initBrokerAlias-会话列表'),
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(0.0),
               child: Container(
@@ -157,8 +174,8 @@ class ConversationManageState extends State<ConversationManage> {
   // 查询已经存储的会话集合
   void queryConversationList({String? searchKey}) async {
     List<Conversation> conversationList =
-        await getConversations(searchKey: searchKey, brokerId: widget.brokerId);
-    Broker? broker = await getBrokerById(id: widget.brokerId);
+        await getConversations(searchKey: searchKey, brokerId: initBrokerId);
+    Broker? broker = await getBrokerById(id: initBrokerId);
     if (broker != null) {
       setState(() {
         _broker = broker;
@@ -264,7 +281,7 @@ class ConversationManageState extends State<ConversationManage> {
     int modifiedTimestamp = createdTimestamp;
     int id;
     Map<String, dynamic> conversationMap = {
-      'broker_id': widget.brokerId,
+      'broker_id': initBrokerId,
       'published_topic': _publisherController.text,
       'subscribed_topic': _receiverController.text,
       'unread_amount': 0,
