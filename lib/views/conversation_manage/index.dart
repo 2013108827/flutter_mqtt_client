@@ -6,20 +6,22 @@ import 'package:mqtt5_client/mqtt5_client.dart';
 import 'package:mqtt5_client/mqtt5_server_client.dart';
 import 'package:mqtt_client/api/messageDBApi.dart';
 import 'package:mqtt_client/pojo/broker.dart';
+import 'package:mqtt_client/pojo/dualPanel.dart';
+import 'package:mqtt_client/store/HomePageProvider.dart';
+import 'package:mqtt_client/store/conversationMessageProvider.dart';
 import 'package:mqtt_client/views/conversation_manage/message_page.dart';
+import 'package:provider/provider.dart';
 
 import '../../api/conversationDBApi.dart';
 import '../../pojo/conversation.dart';
+import '../../store/conversationManageProvider.dart';
 import '../../utils/DatabaseApiUtils.dart';
 
 class ConversationManage extends StatefulWidget {
 
-  static const routeName = 'ConversationManage';
+  static const routeName = 'ConversationManagePage';
 
-  // 数据库id,没有时传0
-  final Map arguments;
-
-  const ConversationManage({super.key, required this.arguments});
+  const ConversationManage({super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -31,12 +33,12 @@ class ConversationManageState extends State<ConversationManage> {
   // broker的数据库id
   int initBrokerId = 0;
   // broker别名
-  String initBrokerAlias = "";
+  // String initBrokerAlias = "";
 
   List<Conversation> _conversationList = [];
   int _conversationListLength = 0;
   int _conversationId = 0;
-  late Broker _broker;
+  // late Broker _broker;
   final TextEditingController _publisherController = TextEditingController();
   final TextEditingController _receiverController = TextEditingController();
   late MqttServerClient _mqttClient;
@@ -47,29 +49,21 @@ class ConversationManageState extends State<ConversationManage> {
   @override
   void initState() {
     super.initState();
-    if (widget.arguments["initBrokerId"] != null) {
-      setState(() {
-        initBrokerId = widget.arguments["initBrokerId"];
-      });
-
-    }
-    if (widget.arguments["initBrokerAlias"] != null) {
-      setState(() {
-        initBrokerAlias = widget.arguments["initBrokerAlias"];
-      });
-    }
-
-    if (initBrokerId != 0) {
-      queryConversationList();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+
+    DualPanel dualPanel = context.read<DualPanel>();
+    Broker broker = context.watch<ConversationManageProvider>().broker;
+    // Broker broker = conversationManageProvider.getBroker;
+
+    ConversationMessageProvider conversationMessageProvider = context.read<ConversationMessageProvider>();
+
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-            title: Text('$initBrokerAlias-会话列表'),
+            title: Center(child: Text(broker.alias)),
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(0.0),
               child: Container(
@@ -79,13 +73,23 @@ class ConversationManageState extends State<ConversationManage> {
                   child: Text(_appBarSubTitle),
                 ),
               ),
-            )),
-        body: dataList(),
+            ),
+            leading: IconButton(
+                onPressed: () {
+                  goBack(context, dualPanel);
+                },
+                icon: const Icon(Icons.arrow_back_outlined)
+            ),
+        ),
+        body: dataList(dualPanel, broker, conversationMessageProvider),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             if (_connected) {
               debugPrint("添加会话");
-              mySimpleDialog(context, '添加会话');
+              setState(() {
+                _conversationId = 0;
+              });
+              mySimpleDialog(context, '添加会话', broker, conversationMessageProvider);
             }
           },
           tooltip: 'Increment',
@@ -96,7 +100,12 @@ class ConversationManageState extends State<ConversationManage> {
         ));
   }
 
-  Widget dataList() {
+  Widget dataList(DualPanel dualPanel, Broker broker, ConversationMessageProvider conversationMessageProvider) {
+    // setState(() {
+    //   _broker = broker;
+    // });
+    queryConversationList(broker, conversationMessageProvider);
+
     if (_conversationList.isEmpty) {
       return const Center(
         child: Text('暂无活跃会话'),
@@ -123,14 +132,9 @@ class ConversationManageState extends State<ConversationManage> {
             setState(() {
               _conversationId = conversation.id;
             });
-            Navigator.push(context, MaterialPageRoute(builder: (context) {
-              return MessagePage(
-                key: _messagePageKey,
-                conversationId: conversation.id,
-                mqttClient: _mqttClient,
-              );
-            })).then(
-                (value) => (value == null || value) ? _enterAgain() : null);
+            conversationMessageProvider.queryMessageListAndConversation(conversation.id);
+            conversationMessageProvider.inputMqttClient(_mqttClient);
+            dualPanel.routerPush(context, "ConversationMessagePage", {});
           },
           onLongPress: () {
             debugPrint('编辑会话');
@@ -145,20 +149,18 @@ class ConversationManageState extends State<ConversationManage> {
                       ? conversation.subscribedTopic
                       : '')!;
             });
-            mySimpleDialog(context, '编辑会话');
+            mySimpleDialog(context, '编辑会话', broker, conversationMessageProvider);
           },
           trailing: IconButton(
             icon: const Icon(Icons.delete_forever_outlined),
             onPressed: () {
               deleteConversation(conversation.id).then((value) => {
-                    if (value > 0)
-                      {
-                        if (conversation.subscribedTopic!.isNotEmpty)
-                          {
+                    if (value > 0) {
+                        if (conversation.subscribedTopic!.isNotEmpty) {
                             _mqttClient.unsubscribeStringTopic(
                                 conversation.subscribedTopic.toString())
                           },
-                        queryConversationList()
+                        queryConversationList(broker, conversationMessageProvider)
                       }
                   });
             },
@@ -172,31 +174,24 @@ class ConversationManageState extends State<ConversationManage> {
   }
 
   // 查询已经存储的会话集合
-  void queryConversationList({String? searchKey}) async {
-    List<Conversation> conversationList =
-        await getConversations(searchKey: searchKey, brokerId: initBrokerId);
-    Broker? broker = await getBrokerById(id: initBrokerId);
-    if (broker != null) {
+  void queryConversationList(Broker broker, ConversationMessageProvider conversationMessageProvider) {
+    getConversations(searchKey: '', brokerId: broker.id).then((value) {
       setState(() {
-        _broker = broker;
+        _conversationList = value;
+        _conversationListLength = value.length;
       });
-
       if (!_connected) {
         MqttServerClient mqttClient = MqttServerClient(broker.host, '');
-        setMqttClient(mqttClient, broker);
+        setMqttClient(mqttClient, broker, conversationMessageProvider);
         setState(() {
           _mqttClient = mqttClient;
         });
       }
-    }
-    setState(() {
-      _conversationList = conversationList;
-      _conversationListLength = conversationList.length;
     });
   }
 
   // 新增话题弹窗
-  void mySimpleDialog(BuildContext context, String dialogTitle) {
+  void mySimpleDialog(BuildContext context, String dialogTitle, Broker broker, ConversationMessageProvider conversationMessageProvider) {
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -213,8 +208,8 @@ class ConversationManageState extends State<ConversationManage> {
                     debugPrint("新增或修改某会话");
                     if (_publisherController.text.isNotEmpty ||
                         _receiverController.text.isNotEmpty) {
-                      saveOrUpdateConversation().then((id) {
-                        queryConversationList();
+                      saveOrUpdateConversation(broker).then((id) {
+                        queryConversationList(broker, conversationMessageProvider);
                         if (_receiverController.text.isNotEmpty) {
                           addMqttSubscribe(_receiverController.text);
                         }
@@ -276,12 +271,12 @@ class ConversationManageState extends State<ConversationManage> {
   }
 
   // 新增/更新本地会话
-  Future<int> saveOrUpdateConversation() async {
+  Future<int> saveOrUpdateConversation(Broker broker) async {
     int createdTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     int modifiedTimestamp = createdTimestamp;
     int id;
     Map<String, dynamic> conversationMap = {
-      'broker_id': initBrokerId,
+      'broker_id': broker.id,
       'published_topic': _publisherController.text,
       'subscribed_topic': _receiverController.text,
       'unread_amount': 0,
@@ -300,19 +295,19 @@ class ConversationManageState extends State<ConversationManage> {
     return id;
   }
 
-  void _enterAgain() {
-    setState(() {
-      _conversationId = 0;
-    });
-    queryConversationList();
-  }
+  // void _enterAgain() {
+  //   setState(() {
+  //     _conversationId = 0;
+  //   });
+  //   queryConversationList(_broker);
+  // }
 
-  Future<void> setMqttClient(MqttServerClient mqttClient, Broker broker) async {
+  Future<void> setMqttClient(MqttServerClient mqttClient, Broker broker, ConversationMessageProvider conversationMessageProvider) async {
     // 使用websocket连接
     if (broker.connectType == 'ws') {
       mqttClient.useWebSocket = true;
     }
-    mqttClient.port = _broker.port; // ( or whatever your ws port is)
+    mqttClient.port = broker.port; // ( or whatever your ws port is)
     /// You can also supply your own websocket protocol list or disable this feature using the websocketProtocols
     /// setter, read the API docs for further details here, the vast majority of brokers will support the client default
     /// list so in most cases you can ignore this.
@@ -329,7 +324,9 @@ class ConversationManageState extends State<ConversationManage> {
     mqttClient.keepAlivePeriod = 60;
 
     /// 连接成功回调
-    mqttClient.onConnected = onConnected;
+    mqttClient.onConnected = () {
+      onConnected(broker, conversationMessageProvider);
+    };
 
     /// 连接断开回调
     mqttClient.onDisconnected = onDisconnected;
@@ -378,13 +375,13 @@ class ConversationManageState extends State<ConversationManage> {
     }
   }
 
-  void onConnected() {
+  void onConnected(Broker broker, ConversationMessageProvider conversationMessageProvider) {
     setState(() {
-      _appBarSubTitle = "${_broker.host}:${_broker.port}已连接";
+      _appBarSubTitle = "${broker.host}:${broker.port}已连接";
       _connected = true;
     });
 
-    runSubscribeFun();
+    runSubscribeFun(broker, conversationMessageProvider);
   }
 
   void onDisconnected() {
@@ -404,7 +401,7 @@ class ConversationManageState extends State<ConversationManage> {
   }
 
   void pong() {
-    debugPrint("Ping的响应");
+    // debugPrint("Ping的响应");
   }
 
   void addMqttSubscribe(String topic) {
@@ -413,7 +410,7 @@ class ConversationManageState extends State<ConversationManage> {
     }
   }
 
-  void runSubscribeFun() {
+  void runSubscribeFun(Broker broker, ConversationMessageProvider conversationMessageProvider) {
     if (_mqttClient.connectionStatus?.state == MqttConnectionState.connected) {
       if (_conversationList.isNotEmpty) {
         for (Conversation item in _conversationList) {
@@ -421,22 +418,21 @@ class ConversationManageState extends State<ConversationManage> {
             addMqttSubscribe(item.subscribedTopic.toString());
           }
         }
-        registerMessageListener();
+        registerMessageListener(broker, conversationMessageProvider);
       }
     }
   }
 
-  void registerMessageListener() {
+  void registerMessageListener(Broker broker, ConversationMessageProvider conversationMessageProvider) {
     _mqttClient.updates.listen((event) {
       MqttPublishMessage recMess = event[0].payload as MqttPublishMessage;
       // 转成字符串
-      String pt =
-          const Utf8Decoder().convert(recMess.payload.message as List<int>);
+      String pt = const Utf8Decoder().convert(recMess.payload.message as List<int>);
       String? subscribedTopic = event[0].topic;
       if (subscribedTopic != null) {
         debugPrint("接收到了主题$subscribedTopic的消息： $pt");
         getConversationsBySubscribedTopic(
-                subscribedTopic: subscribedTopic, brokerId: _broker.id)
+                subscribedTopic: subscribedTopic, brokerId: broker.id)
             .then((conversationList) {
           if (conversationList.isNotEmpty) {
             for (Conversation conversation in conversationList) {
@@ -447,11 +443,11 @@ class ConversationManageState extends State<ConversationManage> {
                 'content': pt,
                 'created_time': DateTime.now().millisecondsSinceEpoch ~/ 1000,
               };
-              insertMessage(map);
-
-              if (_conversationId == conversation.id) {
-                _messagePageKey.currentState?.queryMessageList();
-              }
+              insertMessage(map).then((_) {
+                if (_conversationId == conversation.id) {
+                  conversationMessageProvider.queryMessageList(_conversationId);
+                }
+              });
             }
           }
         });
@@ -459,13 +455,21 @@ class ConversationManageState extends State<ConversationManage> {
     });
   }
 
+  void goBack(BuildContext context, DualPanel dualPanel) {
+    if (_connected) {
+      _mqttClient.disconnect();
+    }
+    // homePageNotifier.queryBrokerList();
+    dualPanel.routerPop(context);
+  }
+
   @override
   void dispose() {
     super.dispose();
     // _publisherController.dispose();
     // _receiverController.dispose();
-    if (_connected) {
-      _mqttClient.disconnect();
-    }
+    // if (_connected) {
+    //   _mqttClient.disconnect();
+    // }
   }
 }

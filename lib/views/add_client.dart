@@ -7,19 +7,17 @@ import 'package:mqtt_client/utils/DatabaseApiUtils.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
-import '../pojo/broker.dart';
+import 'package:mqtt_client/pojo/broker.dart';
+import 'package:mqtt_client/store/HomePageProvider.dart';
+
+import '../store/clientAddProvider.dart';
 
 class ClientAddFul extends StatefulWidget {
 
   static const routeName = 'ClientAdd';
 
-  // 数据库id,没有时传0
-  final Map arguments;
-
   const ClientAddFul({
     super.key,
-    required this.arguments,
-    // required this.database
   });
 
   @override
@@ -29,7 +27,6 @@ class ClientAddFul extends StatefulWidget {
 }
 
 class ClientAddState extends State<ClientAddFul> {
-  int initBrokerId = 0;
   Uuid uuid = const Uuid();
   int _brokerId = 0;
   final TextEditingController _aliasController = TextEditingController();
@@ -44,28 +41,25 @@ class ClientAddState extends State<ClientAddFul> {
   @override
   void initState() {
     super.initState();
-    int brokerId = widget.arguments['brokerId'];
-    setState(() {
-      initBrokerId = brokerId;
-    });
-
-    if (initBrokerId != 0) {
-      queryBroker();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
 
+    DualPanel dualPanel = context.read<DualPanel>();
+    HomePageProvider homePageNotifier = context.read<HomePageProvider>();
+    ClientAddProvider clientAddProvider = context.watch<ClientAddProvider>();
+
     return Scaffold(
         appBar: AppBar(
+          key: GlobalKey(),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          // leading: IconButton(
-          //   icon: const Icon(Icons.close),
-          //   onPressed: () {
-          //     context.read<DualPanel>().endPanelPop(context);
-          //   },
-          // ),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              goBack(context, dualPanel, homePageNotifier);
+            },
+          ),
           title: const Center(
             child: Text(
               '添加Broker',
@@ -82,9 +76,9 @@ class ClientAddState extends State<ClientAddFul> {
                         !_hostController.text.startsWith('wss://')) {
                       _hostController.text = 'ws://${_hostController.text}';
                     }
-                    saveOrUpdateBroker().then((id) => {
-                          Navigator.pop(context, true),
-                        });
+                    saveOrUpdateBroker().then((id) {
+                      goBack(context, dualPanel, homePageNotifier);
+                    });
                   }
                 },
                 icon: const Icon(Icons.save)),
@@ -93,7 +87,8 @@ class ClientAddState extends State<ClientAddFul> {
                 debugPrint('删除按钮');
                 if (_brokerId != 0) {
                   deleteBroker(_brokerId);
-                  Navigator.pop(context, true);
+                  goBack(context, dualPanel, homePageNotifier);
+                  // Navigator.pop(context, true);
                 }
               },
               icon: const Icon(Icons.delete_forever_rounded),
@@ -101,19 +96,23 @@ class ClientAddState extends State<ClientAddFul> {
             ],
           // automaticallyImplyLeading: false
         ),
-        body: loginForm());
+        body: loginForm(clientAddProvider));
   }
 
-  Widget loginForm() {
-    if (_brokerId == 0 && initBrokerId != 0) {
+  Widget loginForm(ClientAddProvider clientAddProvider) {
+    Broker? broker = clientAddProvider.getBroker;
+
+    // if (broker == null) {
       // 编辑时先载loading动画
-      return Center(
-        child: LoadingAnimationWidget.newtonCradle(
-          color: const Color(0xFFEA3799),
-          size: 200,
-        ),
-      );
-    }
+      // return Center(
+      //   child: LoadingAnimationWidget.newtonCradle(
+      //     color: const Color(0xFFEA3799),
+      //     size: 200,
+      //   ),
+      // );
+    // }
+
+    initForm(broker);
 
     return Padding(
         //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称        //symmetric代表着对称，其vertical代表上下对称，horizontal代表左右对称
@@ -253,20 +252,31 @@ class ClientAddState extends State<ClientAddFul> {
         ));
   }
 
-  void queryBroker() async {
-    Broker? broker = await getBrokerById(id: initBrokerId);
+  void initForm(Broker? broker) {
     if (broker != null) {
       setState(() {
         _brokerId = broker.id;
         _aliasController.text = broker.alias;
         _connectType = broker.connectType;
-        _hostController.text = broker.host;
+        _hostController.text =broker.host;
         _portController.text = broker.port.toString();
-        _usernameController.text = broker.username!;
+        _usernameController.text =  broker.username!;
         _passwordController.text = broker.password!;
         _clientIdController.text = broker.clientId;
       });
+      return;
     }
+
+    setState(() {
+      _brokerId = 0;
+      _aliasController.clear();
+      _connectType = 'tcp';
+      _hostController.clear();
+      _portController.clear();
+      _usernameController.clear();
+      _passwordController.clear();
+      _clientIdController.clear();
+    });
   }
 
   // 保存/更新broker到数据库
@@ -298,6 +308,11 @@ class ClientAddState extends State<ClientAddFul> {
   bool validateForm() {
     final form = _formKey.currentState!;
     return form.validate();
+  }
+
+  void goBack(BuildContext context, DualPanel dualPanel,HomePageProvider homePageNotifier) {
+    homePageNotifier.queryBrokerList();
+    dualPanel.routerPop(context);
   }
 
   @override

@@ -1,32 +1,111 @@
 import 'package:flutter/cupertino.dart';
-import 'package:mqtt_client/views/empty_page.dart';
+import 'package:mqtt_client/router/index.dart';
 
-import '../views/home_page.dart';
+import 'package:mqtt_client/router/myRoute.dart';
 
 class DualPanel with ChangeNotifier {
 
-  List<Widget> startPaneList = [const HomePage()];
-  List<Widget> endPanelList = [const EmptyPage()];
+  bool initialized = false;
+  List<MyRoute> startPaneList = [];
+  List<MyRoute> endPanelList = [];
 
-  Widget get startPanel => startPaneList.last;
-  Widget get endPanel => endPanelList.last;
+
+  MyRoute? get startPanel {
+    if (startPaneList.isEmpty) {
+      return null;
+    }
+    return startPaneList.last;
+  }
+
+  MyRoute? get endPanel {
+    if (endPanelList.isEmpty) {
+      return null;
+    }
+    return endPanelList.last;
+  }
+
+  void routerInit(BuildContext context) {
+    routerPush(context, "HomePage", {});
+    routerPush(context, "EmptyPage", {});
+  }
+
+  void routerInitAsync(BuildContext context) {
+    Future<void> future = Future(() {
+      routerPush(context, "HomePage", {});
+      routerPush(context, "EmptyPage", {});
+    });
+    future.then((_) {
+      initialized = true;
+      notifyListeners();
+    });
+  }
+
+  // 路由push
+  void routerPush(BuildContext context, String newRouteName, Object arguments) {
+    Function? routerFunction = constantRoutes[newRouteName];
+    if (routerFunction == null) {
+      throw Exception("router not found");
+    }
+
+    MyRoute route = routerFunction(context, arguments);
+    debugPrint("newRouteName===>$newRouteName:${route.method}");
+
+    switch (route.method) {
+      case "endPanelPush":
+        if (MediaQuery.of(context).size.width > 500 || !initialized) {
+          endPanelPush(route);
+        } else {
+          newPagePush(route);
+        }
+        break;
+      case "newPagePush":
+        newPagePush(route);
+        break;
+    }
+  }
+
+  void routerPop(BuildContext context) {
+    if (MediaQuery.of(context).size.width > 500) {
+      MyRoute lastRoute = endPanelList.last;
+      switch (lastRoute.method) {
+        case "endPanelPush":
+          endPanelPop();
+          break;
+        case "newPagePush":
+          newPagePop();
+          break;
+      }
+    } else {
+      newPagePop();
+    }
+  }
+
 
   /// 路由下一页 start
   // 仅替换右侧显示page
-  void endPanelPush(BuildContext context, Widget widget) {
-    if (MediaQuery.of(context).size.width > 500) {
-      endPanelList.add(widget);
-    } else {
-      newPagePush(widget);
+  void endPanelPush(MyRoute route) {
+    if (endPanelList.isNotEmpty) {
+      MyRoute existRoute = endPanelList.last;
+      if (existRoute.name == route.name) {
+        debugPrint("有重复的widget");
+        return;
+        endPanelList.removeLast();
+      }
+    }
+
+    endPanelList.add(route);
+    if (initialized) {
+      debugPrint("重新渲染dual_widget");
+      notifyListeners();
     }
   }
 
   // 从右向左全替换page
-  void rightToLeft(Widget widget) {
-    Widget firstEndPanel = endPanelList[0];
-    startPaneList.add(firstEndPanel);
-    // endPanelPush(widget);
-  }
+  // void rightToLeft(Widget widget) {
+  //   Widget firstEndPanel = endPanelList[0];
+  //   startPaneList.add(firstEndPanel);
+  //   // endPanelPush(widget);
+  // }
 
   // void popStartPanel(Widget widget) {
   //   startPaneList.removeAt(0);
@@ -34,24 +113,23 @@ class DualPanel with ChangeNotifier {
   // }
 
   // 整个page都替换掉
-  void newPagePush(Widget widget) {
-    startPaneList.add(widget);
-    endPanelList.removeRange(1, endPanelList.length);
-    notifyListeners();
+  void newPagePush(MyRoute route) {
+    startPaneList.add(route);
+    if (endPanelList.isNotEmpty) {
+      endPanelList.removeRange(1, endPanelList.length);
+    }
+    if (initialized) {
+      notifyListeners();
+    }
   }
   /// 路由下一页 end
 
   /// 路由返回 start
   // 右侧返回
-  void endPanelPop(BuildContext context) {
-    print("触发咯");
-    if (MediaQuery.of(context).size.width > 500) {
+  void endPanelPop() {
+    if (endPanelList.isNotEmpty) {
       endPanelList.removeLast();
-      print(endPanelList);
-    } else {
-      newPagePop();
     }
-
     notifyListeners();
   }
 
@@ -64,9 +142,12 @@ class DualPanel with ChangeNotifier {
 
   // 整个page都替换掉返回
   void newPagePop() {
-    startPaneList.removeLast();
-    endPanelList.removeRange(0, endPanelList.length);
-    endPanelList = [const EmptyPage()];
+    if (startPaneList.isNotEmpty) {
+      startPaneList.removeLast();
+    }
+    if (endPanelList.isNotEmpty) {
+      endPanelList.removeRange(1, endPanelList.length);
+    }
     notifyListeners();
   }
   /// 路由返回 end

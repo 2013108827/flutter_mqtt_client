@@ -1,6 +1,7 @@
 import 'package:dual_screen/dual_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/pojo/dualPanel.dart';
+import 'package:mqtt_client/store/conversationManageProvider.dart';
 import 'package:mqtt_client/utils/DatabaseApiUtils.dart';
 import 'package:mqtt_client/views/add_client.dart';
 import 'package:mqtt_client/views/conversation_manage/index.dart';
@@ -8,39 +9,51 @@ import 'package:mqtt_client/views/empty_page.dart';
 import 'package:provider/provider.dart';
 
 import '../pojo/broker.dart';
+import '../store/HomePageProvider.dart';
+import '../store/clientAddProvider.dart';
 
-class HomePage extends StatelessWidget {
+// class HomePage extends StatelessWidget {
+//
+//   static const routeName = 'HomePage';
+//
+//   const HomePage({super.key});
+//
+//   void reloadPage() {
+//
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return const HomePageFul();
+//   }
+// }
 
-  static const routeName = 'HomePage';
+class HomePage extends StatefulWidget {
 
   const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const HomePageFul();
-  }
-}
-
-class HomePageFul extends StatefulWidget {
-  const HomePageFul({super.key});
 
   @override
   State<StatefulWidget> createState() {
     return HomePageState();
   }
+
 }
 
-class HomePageState extends State<HomePageFul> {
+class HomePageState extends State<HomePage> {
   List<Broker> _brokerList = [];
+  bool refresh = false;
 
   @override
   void initState() {
     super.initState();
-    queryBrokerList();
+    // queryBrokerList();
   }
 
   @override
   Widget build(BuildContext context) {
+    DualPanel dualPanel = context.read<DualPanel>();
+    ClientAddProvider clientAddProvider = context.read<ClientAddProvider>();
+    ConversationManageProvider conversationManageProvider = context.read<ConversationManageProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -50,50 +63,23 @@ class HomePageState extends State<HomePageFul> {
           ),
         automaticallyImplyLeading: false
       ),
-      body: dataList(),
+      body: dataList(dualPanel, clientAddProvider, conversationManageProvider),
       floatingActionButton: FloatingActionButton(
         onPressed: () => {
-          addButtonHandler()
+          addButtonHandler(clientAddProvider, dualPanel)
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
-
-    // DualPanel dualPanel = context.watch<DualPanel>();
-    // dualPanel.init(originalWidget, const EmptyPage());
-
-    // return TwoPane(
-    //   startPane: dualPanel.startPanel,
-    //   endPane: dualPanel.endPanel,
-    //   paneProportion: 0.5,
-    //   panePriority: MediaQuery.of(context).size.width > 500 ? TwoPanePriority.both : TwoPanePriority.start,
-    // );
-
-    // return Scaffold(
-    //   appBar: AppBar(
-    //     backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-    //     title: const Center(
-    //       child: Text('MQTT客户端'),
-    //     ),
-    //   ),
-    //   body: dataList(),
-    //   floatingActionButton: FloatingActionButton(
-    //     onPressed: () => {
-    //       Navigator.push(context, MaterialPageRoute(builder: (context) {
-    //         return const ClientAddFul(
-    //           brokerId: 0,
-    //         );
-    //       })).then((value) => (value == null || value) ? _enterAgain() : null)
-    //     },
-    //     tooltip: 'Increment',
-    //     child: const Icon(Icons.add),
-    //   ), // This trailing comma makes auto-formatting nicer for build methods.
-    // );
   }
 
-  Widget dataList() {
-    if (_brokerList.isEmpty) {
+  Widget dataList(DualPanel dualPanel, ClientAddProvider clientAddProvider, ConversationManageProvider conversationManageProvider) {
+    HomePageProvider homePageProvider = context.watch<HomePageProvider>();
+    homePageProvider.queryBrokerList();
+
+    List<Broker> brokerList = homePageProvider.getBrokerList;
+    if (brokerList.isEmpty) {
       return const Center(
         child: Text('暂无Broker服务器'),
       );
@@ -101,32 +87,21 @@ class HomePageState extends State<HomePageFul> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(8),
-      itemCount: _brokerList.length,
+      itemCount: brokerList.length,
       itemBuilder: (BuildContext context, int index) {
-        Broker broker = _brokerList[index];
+        Broker broker = brokerList[index];
         return ListTile(
           title: Text('${index + 1} - ${broker.alias}'),
           subtitle: Text('${broker.host}:${broker.port}'),
           visualDensity: VisualDensity.comfortable,
           splashColor: Theme.of(context).colorScheme.inversePrimary,
           onTap: () {
-            Navigator.pushNamed(
-              context,
-              ConversationManage.routeName,
-              arguments: {
-                "initBrokerId": broker.id,
-                "initBrokerAlias": broker.alias
-              },
-            ).then((value) => (value == null || value == true) ? _enterAgain() : null);
+            dualPanel.routerPush(context, "ConversationManagePage", {});
+            conversationManageProvider.inputBroker(broker);
           },
           onLongPress: () {
-            Navigator.pushNamed(
-              context,
-              ClientAddFul.routeName,
-              arguments: {
-                "brokerId": broker.id
-              },
-            ).then((value) => (value == null || value == true) ? _enterAgain() : null);
+            clientAddProvider.queryBroker(broker.id);
+            dualPanel.routerPush(context, ClientAddFul.routeName, {});
           },
           // trailing: IconButton(
           //   icon: const Icon(Icons.delete_forever_outlined),
@@ -153,32 +128,14 @@ class HomePageState extends State<HomePageFul> {
     });
   }
 
-  void _enterAgain() {
+  void reloadData() {
     queryBrokerList();
   }
 
-  void addButtonHandler() {
-    Navigator.pushNamed(
-      context,
-      ClientAddFul.routeName,
-      arguments: {
-        "brokerId": 0
-      },
-    ).then((value) => (value == null || value == true) ? _enterAgain() : null);
-        // .then((value) => (value == null || value) ? _enterAgain() : null);
-    // if (MediaQuery.of(context).size.width > 500) {
-    //   setState(() {
-    //     endPanelList.insert(0, const ClientAddFul(
-    //       brokerId: 0,
-    //     ));
-    //   });
-    // } else {
-    //   Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (context) {
-    //     return const ClientAddFul(
-    //       brokerId: 0,
-    //     );
-    //   })).then((value) => (value == null || value) ? _enterAgain() : null);
-    // }
+  void addButtonHandler(ClientAddProvider clientAddProvider, DualPanel dualPanel) {
+    clientAddProvider.queryBroker(0);
+
+    dualPanel.routerPush(context, ClientAddFul.routeName, {"brokerId": 0});
   }
 
   @override
