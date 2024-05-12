@@ -71,9 +71,7 @@ class ClientAddState extends State<ClientAddFul> {
                   debugPrint('保存按钮');
                   // print(broker.toJson());
                   if (validateForm()) {
-                    if (_connectType == 'ws' &&
-                        !_hostController.text.startsWith('ws://') &&
-                        !_hostController.text.startsWith('wss://')) {
+                    if (_connectType == 'ws' && !_hostController.text.startsWith('ws://') && !_hostController.text.startsWith('wss://')) {
                       _hostController.text = 'ws://${_hostController.text}';
                     }
                     saveOrUpdateBroker().then((id) {

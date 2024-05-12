@@ -134,7 +134,6 @@ class HomePageState extends State<HomePage> {
 
   void addButtonHandler(ClientAddProvider clientAddProvider, DualPanel dualPanel) {
     clientAddProvider.queryBroker(0);
-
     dualPanel.routerPush(context, ClientAddFul.routeName, {"brokerId": 0});
   }
 
