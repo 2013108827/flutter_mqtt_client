@@ -408,7 +408,7 @@ class ConversationManageState extends State<ConversationManage> {
 
   void addMqttSubscribe(String topic) {
     if (topic.isNotEmpty) {
-      _mqttClient.subscribe(topic, MqttQos.atLeastOnce);
+      _mqttClient.subscribe(topic, MqttQos.atMostOnce);
     }
   }
 
