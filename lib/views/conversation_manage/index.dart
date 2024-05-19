@@ -61,6 +61,8 @@ class ConversationManageState extends State<ConversationManage> {
     ConversationMessageProvider conversationMessageProvider = context.read<ConversationMessageProvider>();
 
     return Scaffold(
+        // 弹出键盘时，阻止页面自动上划
+        resizeToAvoidBottomInset : false,
         appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             title: Center(child: Text(broker.alias)),
@@ -460,7 +462,7 @@ class ConversationManageState extends State<ConversationManage> {
       _mqttClient.disconnect();
     }
     // homePageNotifier.queryBrokerList();
-    dualPanel.routerPop(context);
+    dualPanel.routerPop(context, isNewPage: true);
   }
 
   @override

@@ -61,16 +61,27 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
         useMaterial3: true,
       ),
-      home: (startPanelRoute == null || endPanelRoute == null) ? tempWidget(context, dualPanel) : TwoPane(
-          startPane: startPanelRoute.widget,
-          endPane: endPanelRoute.widget,
-          paneProportion: 0.5,
-          panePriority: MediaQuery.of(context).size.width > 500
-              ? TwoPanePriority.both
-              : TwoPanePriority.start),
+      home: WillPopScope(
+        onWillPop: () async  {
+          if (startPanelRoute?.name == "HomePage") {
+            print(startPanelRoute?.name);
+            return true;
+          }
+
+          dualPanel.routerPop(context);
+          return false;
+        },
+        child: (startPanelRoute == null || endPanelRoute == null) ? tempWidget(context, dualPanel) : TwoPane(
+            startPane: startPanelRoute.widget,
+            endPane: endPanelRoute.widget,
+            paneProportion: 0.5,
+            panePriority: MediaQuery.of(context).size.width > 500
+                ? TwoPanePriority.both
+                : TwoPanePriority.start),
+      )
     );
   }
 

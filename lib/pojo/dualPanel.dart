@@ -64,8 +64,8 @@ class DualPanel with ChangeNotifier {
     }
   }
 
-  void routerPop(BuildContext context) {
-    if (MediaQuery.of(context).size.width > 500) {
+  void routerPop(BuildContext context, {bool isNewPage = false}) {
+    if (MediaQuery.of(context).size.width > 500 && !isNewPage) {
       MyRoute lastRoute = endPanelList.last;
       switch (lastRoute.method) {
         case "endPanelPush":

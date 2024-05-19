@@ -27,8 +27,11 @@ class EmptyPageState extends State<EmptyPageFul> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: const Center(
         child: FlutterLogo(
             size: 50
         ),

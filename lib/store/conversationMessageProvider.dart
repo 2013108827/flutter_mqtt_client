@@ -18,7 +18,9 @@ class ConversationMessageProvider with ChangeNotifier {
   List<Message> messageList = [];
 
   void inputMqttClient(MqttClient myMqttClient) {
-    Future(() => mqttClient = myMqttClient).then((_) => notifyListeners());
+    // Future(() => mqttClient = myMqttClient).then((_) => notifyListeners());
+    mqttClient = myMqttClient;
+    notifyListeners();
   }
 
   void queryMessageList(int conversationId) {

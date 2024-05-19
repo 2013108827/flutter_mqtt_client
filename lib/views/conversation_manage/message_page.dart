@@ -49,7 +49,7 @@ class MessagePageState extends State<MessagePage> {
 
     return Scaffold(
       // 弹出键盘时，阻止页面自动上划
-      resizeToAvoidBottomInset : false,
+      // resizeToAvoidBottomInset : false,
       appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Center(child: Text('消息列表')),
@@ -114,44 +114,50 @@ class MessagePageState extends State<MessagePage> {
     // https://www.jianshu.com/p/72754a08b423
     AutoScrollController controller = AutoScrollController();
 
-    return Column(
-      children: [
-        Flexible(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            reverse: true,
-            controller: controller,
-            itemCount: messageList.length,
-            itemBuilder: (BuildContext context, int index) {
-              Message message = messageList[index];
-              bool onLeft = message.type == 2;
-              return Container(
+    return GestureDetector(
+      onTap: () {
+        // 触摸收起键盘
+        FocusScope.of(context).requestFocus(FocusNode());
+      },
+      child: Column(
+        children: [
+          Flexible(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              reverse: true,
+              controller: controller,
+              itemCount: messageList.length,
+              itemBuilder: (BuildContext context, int index) {
+                Message message = messageList[index];
+                bool onLeft = message.type == 2;
+                return Container(
                   // height: 50,
                   // color: Colors.amber[colorCodes[index]],
-                  child: onLeft
-                      ? receiverWidget(message)
-                      : publisherWidget(message));
-            },
-            separatorBuilder: (BuildContext context, int index) =>
-                const Divider(
-              height: 10,
-              // 透明的灰色
-              color: Color(0x00d9d9d9),
+                    child: onLeft
+                        ? receiverWidget(message)
+                        : publisherWidget(message));
+              },
+              separatorBuilder: (BuildContext context, int index) =>
+              const Divider(
+                height: 10,
+                // 透明的灰色
+                color: Color(0x00d9d9d9),
+              ),
             ),
           ),
-        ),
-        const Divider(height: 1.0),
-        Container(
-            height: 60,
-            width: MediaQuery.of(context).size.width,
-            color: Theme.of(context).colorScheme.inversePrimary,
-            padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-            // decoration: BoxDecoration(
-            //   color: Theme.of(context).cardColor,
-            // ),
-            child: sendMessageBoxWidget(context)
-        ),
-      ],
+          const Divider(height: 1.0),
+          Container(
+              height: 60,
+              width: MediaQuery.of(context).size.width,
+              color: Theme.of(context).colorScheme.inversePrimary,
+              padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+              // decoration: BoxDecoration(
+              //   color: Theme.of(context).cardColor,
+              // ),
+              child: sendMessageBoxWidget(context)
+          ),
+        ],
+      ),
     );
   }
 
@@ -330,6 +336,7 @@ class MessagePageState extends State<MessagePage> {
                     //右边图标设置
                     suffixIcon: IconButton(
                       onPressed: () {
+                        FocusScope.of(context).requestFocus(FocusNode());
                         String text = _messageController.text;
                         if (text.isNotEmpty) {
                           debugPrint('send message：$text');
@@ -570,6 +577,7 @@ class MessagePageState extends State<MessagePage> {
     // homePageNotifier.queryBrokerList();
     dualPanel.routerPop(context);
   }
+
 
   @override
   void dispose() {

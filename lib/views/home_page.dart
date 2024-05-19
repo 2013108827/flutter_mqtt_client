@@ -56,6 +56,8 @@ class HomePageState extends State<HomePage> {
     ConversationManageProvider conversationManageProvider = context.read<ConversationManageProvider>();
 
     return Scaffold(
+      // 弹出键盘时，阻止页面自动上划
+      resizeToAvoidBottomInset : false,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Center(
